@@ -1,0 +1,72 @@
+baseurl = "http://www.example.com"
+title = "Anoop Kunjuraman"
+theme = "anoop-simple"
+languagecode = "en-us"
+defaultcontentlanguage = "en"
+
+paginate = 20
+canonifyurls = true
+
+pygmentsstyle = "bw"
+pygmentscodefences = true
+pygmentscodefencesguesssyntax = true
+
+disqusShortname = "yourdiscussshortname"
+
+enableRobotsTXT = true
+
+[params]
+    # used in meta headers
+    author="Anoop Kunjuraman"
+
+
+    # used in home page
+    salutation="Hello!…"
+    name = "Anoop Kunjuraman"
+    title = "Senior Software Engineering Manager at Capital One"
+    info = "Tech leader, Full stack developer, Data Engineering, Husband, Dad, Coffee connoisseur"
+
+
+    description = "Anoop Kunjuraman"
+    keywords = "Anoop Kunjuraman, Anoop KunjuramanPillai, Anoop Engineer, blog,developer,personal"
+    avatarurl = "images/avatar.jpg"
+
+    favicon_32 = "/img/favicon-32x32.png"
+    favicon_16 = "/img/favicon-16x16.png"
+
+    footercontent = "All views and opinions expressed in this site are my own and doesn't reflect that of my employer or anybody else"
+
+    hidecredits = true
+    hidecopyright = false
+
+    rtl = false
+
+    math = true
+    custom_css = ["css/custom.css"]
+
+# Social links
+[[params.social]]
+    name = "Github"
+    icon = "fab fa-github fa-2x"
+    weight = 1
+    url = "https://github.com/anoopengineer/"
+[[params.social]]
+    name = "Linkedin"
+    icon = "fab fa-linkedin fa-2x"
+    weight = 2
+    url = "https://www.linkedin.com/in/anoopkunjuraman/"
+[[params.social]]
+    name = "Twitter"
+    icon = "fab fa-twitter fa-2x"
+    weight = 3
+    url = "https://twitter.com/anoopengineer/"
+
+# Menu links
+[[menu.main]]
+    name = "Articles"
+    weight = 1
+    url  = "/articles/"
+[[menu.main]]
+    name = "About"
+    weight = 2
+    url = "/about/"
