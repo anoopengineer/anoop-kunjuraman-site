@@ -1,6 +1,4 @@
 
-# Hugo default output directory
-/public
 
 ## OS Files
 # Windows
@@ -11,3 +9,9 @@ $RECYCLE.BIN/
 
 # OSX
 .DS_Store
+
+### Hugo ###
+# Generated files by hugo
+/public/
+/resources/_gen/
+
