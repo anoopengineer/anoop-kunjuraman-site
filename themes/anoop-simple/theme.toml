@@ -1,0 +1,11 @@
+name = "anoop-simple"
+license = "MIT"
+description = "Anoop's site template"
+homepage = "https://anoop.kunjuraman.com"
+tags = []
+features = []
+min_version = "0.1"
+
+[author]
+  name = "Anoop Kunjuraman"
+  homepage = "https://anoop.kunjuraman.com"
