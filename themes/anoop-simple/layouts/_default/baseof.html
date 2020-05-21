@@ -90,9 +90,7 @@
 
 <body class="{{ if .Site.Params.rtl }}rtl{{ end }} {{ if .Site.Params.inverted }}inverted{{ end }}">
   <main class="wrapper">
-    {{ if not .IsHome }}
     {{ partial "header.html" . }}
-    {{ end }}
 
     <div class="content">
       {{ block "content" . }}{{ end }}

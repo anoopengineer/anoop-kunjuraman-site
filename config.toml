@@ -20,13 +20,14 @@ googleAnalytics = "UA-149662048-1"
 [params]
     # used in meta headers
     author="Anoop Kunjuraman"
+    ptitle = "anoop.kunjuraman.com"
 
 
     # used in home page
-    salutation="Hello!…"
+    salutation = "Hello!…"
     name = "Anoop Kunjuraman"
     title = "Senior Software Engineering Manager at Capital One"
-    info = "Tech leader, Full stack developer, Data Engineering, Husband, Dad, Coffee connoisseur"
+    info = "tech leader • full stack developer • data fanatic • husband • dad • coffee connoisseur"
 
 
     description = "Anoop Kunjuraman"
@@ -69,6 +70,6 @@ googleAnalytics = "UA-149662048-1"
     weight = 1
     url  = "/articles/"
 [[menu.main]]
-    name = "About"
+    name = "Github"
     weight = 2
-    url = "/about/"
+    url = "https://github.com/anoopengineer/"

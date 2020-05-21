@@ -7,22 +7,24 @@
     <h2>I'm <strong>{{.Site.Params.name}} </strong>, {{ .Site.Params.title }}</h2>
     <div class="title">{{ .Site.Params.info }}</div>
     {{ with .Site.Params.social }}
-    <ul>
-      {{ range sort .}}
-      {{ if .icon }}
-      <li>
-        <a href="{{ .url }}" target="_blank" aria-label="{{ .name }}" {{ if .rel }}rel="{{ .rel }}" {{ end }}>
-          <i class="{{ .icon }}" aria-hidden="true"></i>
-        </a>
-      </li>
-      {{ else }}
-      <li>
-        <a href="{{ .url }}" target="_blank" aria-label="{{ .name }}" {{ if .rel }}rel="{{ .rel }}" {{ end }}>
-          {{ .name }}
-        </a>
-      </li>
-      {{ end }} {{ end }}
-    </ul>
+    <div class="home-social-media-links">
+      <ul>
+        {{ range sort .}}
+        {{ if .icon }}
+        <li>
+          <a href="{{ .url }}" target="_blank" aria-label="{{ .name }}" {{ if .rel }}rel="{{ .rel }}" {{ end }}>
+            <i class="{{ .icon }}" aria-hidden="true"></i>
+          </a>
+        </li>
+        {{ else }}
+        <li>
+          <a href="{{ .url }}" target="_blank" aria-label="{{ .name }}" {{ if .rel }}rel="{{ .rel }}" {{ end }}>
+            {{ .name }}
+          </a>
+        </li>
+        {{ end }} {{ end }}
+      </ul>
+    </div>
     {{ end }}
   </div>
 </section>
