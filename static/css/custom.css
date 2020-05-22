@@ -1,0 +1,23 @@
+body {
+  color: #212121;
+  background-color: #fafafa;
+  font-family: "Roboto", sans-serif;
+  font-size: 1.6em;
+  font-weight: 300;
+  line-height: 1.8em;
+}
+@media only screen and (max-width: 768px) {
+  body {
+    font-size: 1.6em;
+    line-height: 1.6em;
+  }
+}
+
+.title {
+  font-size: 1.5rem;
+  margin-top: 2.5em;
+}
+
+.home-social-media-links {
+  margin-top: 4.5em;
+}
