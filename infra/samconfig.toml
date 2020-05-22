@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "anoop-kunjuraman-com-site"
+s3_bucket = "anoop.kunjuraman.com.sam"
+s3_prefix = "anoop.kunjuraman.com"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
