@@ -34,8 +34,9 @@ googleAnalytics = "UA-149662048-1"
     keywords = "Anoop Kunjuraman, Anoop KunjuramanPillai, Anoop Engineer, blog,developer,personal"
     avatarurl = "images/avatar.jpg"
 
-    favicon_32 = "/img/favicon-32x32.png"
-    favicon_16 = "/img/favicon-16x16.png"
+    favicon_apple_touch = "/images/apple-touch-icon.png"
+    favicon_32 = "/images/favicon-32x32.png"
+    favicon_16 = "/images/favicon-16x16.png"
 
     footercontent = "All views and opinions expressed in this site are my own and doesn't reflect that of my employer or anybody else"
 
