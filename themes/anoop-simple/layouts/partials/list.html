@@ -1,15 +1,15 @@
 <section class="container list">
   <h1 class="title">
     {{- if eq .Kind "taxonomy" -}}
-      {{- i18n .Data.Singular | title -}}
-      {{- print ": " -}}
+    {{- i18n .Data.Singular | title -}}
+    {{- print ": " -}}
     {{- end -}}
 
     {{- .Title -}}
   </h1>
   <ul>
     {{ range .Paginator.Pages }}
-    <li>
+    <li class="list-item">
       <span class="date">{{ .Date.Format (.Site.Params.dateFormat | default "January 2, 2006" ) }}</span>
       <a class="title" href="{{ .Params.ExternalLink | default .RelPermalink }}">{{ .Title }}</a>
     </li>
