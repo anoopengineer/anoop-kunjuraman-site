@@ -3,6 +3,52 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   anoop.kunjuraman.com website
 
+Parameters:
+  HTMLBucketName:
+    Default: mysite.com
+    Description: Name of the S3 Bucket where your static site contents will be copied to.
+    Type: String
+
+  ComputeType:
+    AllowedValues:
+      - BUILD_GENERAL1_SMALL
+      - BUILD_GENERAL1_MEDIUM
+      - BUILD_GENERAL1_LARGE
+    Default: BUILD_GENERAL1_SMALL
+    Description: AWS CodeBuild project compute type.
+    Type: String
+
+  EnvironmentType:
+    AllowedValues:
+      - LINUX_CONTAINER
+      - WINDOWS_CONTAINER
+    Default: LINUX_CONTAINER
+    Description: Environment type used by AWS CodeBuild. See the documentation for details (https://docs.aws.amazon.com/codebuild/latest/userguide/create-project.html#create-project-cli).
+    Type: String
+
+  GitHubOAuthToken:
+    Description: OAuth token used by AWS CodeBuild to connect to GitHub
+    NoEcho: true
+    Type: String
+
+  GitHubOwner:
+    Description: GitHub username owning the repo
+    Type: String
+
+  GitHubRepo:
+    Description: GitHub repo name
+    Type: String
+
+Outputs:
+  HTMLBucketArn:
+    Value: !GetAtt S3Bucket.Arn
+  HTMLBucketName:
+    Value: !Ref S3Bucket
+  CodeBuildProjectArn:
+    Value: !GetAtt CodeBuildProject.Arn
+  CodeBuildProjectName:
+    Value: !Ref CodeBuildProject
+
 Resources:
   CloudFrontOriginAccessIdentity:
     Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
@@ -22,7 +68,11 @@ Resources:
           SslSupportMethod: sni-only
         Enabled: true
         HttpVersion: http2
-        # List of origins that Cloudfront will connect to
+        CustomErrorResponses:
+          - ErrorCode: "404"
+            ResponsePagePath: "/404.html"
+            ResponseCode: "404"
+            ErrorCachingMinTTL: "30"
         Origins:
           - Id: s3-website
             DomainName: !GetAtt S3Bucket.DomainName
@@ -30,7 +80,6 @@ Resources:
               # Restricting Bucket access through an origin access identity
               OriginAccessIdentity:
                 Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
-        # To connect the CDN to the origins you need to specify behaviours
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
           Compress: "true"
@@ -46,15 +95,14 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      # Change bucket name to reflect your website
-      BucketName: anoop.kunjuraman.com
+      BucketName: !Ref HTMLBucketName
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref S3Bucket
       PolicyDocument:
-        # Restricting access to cloudfront only.
+        # Restricting access to cloudfront.
         Statement:
           - Effect: Allow
             Action: "s3:GetObject"
@@ -62,3 +110,96 @@ Resources:
               - !Sub "arn:aws:s3:::${S3Bucket}/*"
             Principal:
               AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+
+  CodeBuildProject:
+    Properties:
+      Name: !Ref "AWS::StackName"
+      Artifacts:
+        Type: NO_ARTIFACTS
+      BadgeEnabled: true
+      Environment:
+        ComputeType: !Ref ComputeType
+        EnvironmentVariables:
+          - Name: PACKAGE_BUCKET
+            Value: !Ref HTMLBucketName
+        Image: "aws/codebuild/standard:4.0"
+        Type: !Ref EnvironmentType
+      ServiceRole: !GetAtt CodeBuildProjectRole.Arn
+      Source:
+        Auth:
+          Resource: !Ref GitHubOAuthToken
+          Type: OAUTH
+        GitCloneDepth: 1
+        Location: !Sub https://github.com/${GitHubOwner}/${GitHubRepo}.git
+        ReportBuildStatus: true
+        Type: GITHUB
+        BuildSpec: !Sub |-
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - apt-get update
+                - echo Installing hugo
+                - curl -L -o hugo.deb https://github.com/gohugoio/hugo/releases/download/v0.71.1/hugo_extended_0.71.1_Linux-64bit.deb
+                - dpkg -i hugo.deb
+            pre_build:
+              commands:
+                - echo In pre_build phase..
+                - echo Current directory is $CODEBUILD_SRC_DIR
+                - ls -la
+            build:
+              commands:
+                - hugo -v
+            post_build:
+              commands:
+                - echo Will try to sync with bucket ${HTMLBucketName}
+                - aws s3 sync public/ s3://${HTMLBucketName}/ --size-only --delete
+                - ls -latrh public && aws --version
+          artifacts:
+            files:
+              - '**/*'
+            base-directory: public
+      Triggers:
+        Webhook: true
+    Type: AWS::CodeBuild::Project
+
+  CodeBuildProjectRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+        Version: "2012-10-17"
+      Path: /service-role/
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
+              - Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Effect: Allow
+                Resource:
+                  - !Sub arn:${AWS::Partition}:s3:::${HTMLBucketName}
+                  - !Sub arn:${AWS::Partition}:s3:::${HTMLBucketName}/*
+              - Action:
+                  - serverlessrepo:GetApplication
+                  - serverlessrepo:CreateCloudFormationTemplate
+                  - serverlessrepo:GetCloudFormationTemplate
+                Effect: Allow
+                Resource: "*"
+            Version: "2012-10-17"
+          PolicyName: CICodeBuildRolePolicy
+    Type: AWS::IAM::Role

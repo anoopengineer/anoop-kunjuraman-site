@@ -3,8 +3,9 @@ version = 0.1
 [default.deploy]
 [default.deploy.parameters]
 stack_name = "anoop-kunjuraman-com-site"
-s3_bucket = "anoop.kunjuraman.com.sam"
-s3_prefix = "anoop.kunjuraman.com"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1iz25k2wydy48"
+s3_prefix = "anoop-kunjuraman-com-site"
 region = "us-east-1"
-confirm_changeset = false
 capabilities = "CAPABILITY_IAM"
+parameter_overrides = "HTMLBucketName=\"anoop.kunjuraman.com\" ComputeType=\"BUILD_GENERAL1_SMALL\" EnvironmentType=\"LINUX_CONTAINER\" GitHubOwner=\"anoopengineer\" GitHubRepo=\"anoop-kunjuraman-site\""
+
