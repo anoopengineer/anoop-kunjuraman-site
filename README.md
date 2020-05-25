@@ -1,3 +1,3 @@
 Source code for [anoop.kunjuraman.com](https://anoop.kunjuraman.com)
 
-![build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiYTh2SldnVHBwRnBoNmcyd1BIaFZxQkFyRE5aWXRKNlE0RFVkYnJ0YWMrWUsyNGduQVVuVW1aOWRBQ0NONlhRRDRJa295RmNGVnNoTnE5ZldoWUdtRWRzPSIsIml2UGFyYW1ldGVyU3BlYyI6IjNxWGVOR3QvNnhsVFRFYkoiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+![build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiU21JV1NUWHF4T3ZoWnF4anRsMDVhcUZWUXRZZFQwK1JkZUdTT0pvZ1dQMTJpcDJYVjZrejZKeE9JMTRBTk5WTlFiMFpHbURQT3VOYVJqYnFBaTltSVF3PSIsIml2UGFyYW1ldGVyU3BlYyI6Im5vbTNEMG12TUNqRlZObk0iLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
