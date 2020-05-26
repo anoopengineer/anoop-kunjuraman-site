@@ -5,8 +5,18 @@ Description: >
 
 Parameters:
   HTMLBucketName:
-    Default: mysite.com
+    Default: anoop.kunjuraman.com
     Description: Name of the S3 Bucket where your static site contents will be copied to.
+    Type: String
+
+  CustomDomainName:
+    Default: anoop.kunjuraman.com
+    Description: The custom domain name you want for the static site
+    Type: String
+
+  AcmCertificateArn:
+    Default: "arn:aws:acm:us-east-1:414954339574:certificate/355fc4e1-57ca-46d8-babc-86fe1d771b47"
+    Description: ARN of the ACM certificate
     Type: String
 
   ComputeType:
@@ -32,10 +42,12 @@ Parameters:
     Type: String
 
   GitHubOwner:
+    Default: "anoopengineer"
     Description: GitHub username owning the repo
     Type: String
 
   GitHubRepo:
+    Default: "anoop-kunjuraman-site"
     Description: GitHub repo name
     Type: String
 
@@ -48,28 +60,36 @@ Outputs:
     Value: !GetAtt CodeBuildProject.Arn
   CodeBuildProjectName:
     Value: !Ref CodeBuildProject
+  CloudfrontDistribution:
+    Value: !Ref CloudfrontDistribution
+  CloudfrontDistributionDNSName:
+    Value: !GetAtt CloudfrontDistribution.DomainName
 
 Resources:
   CloudFrontOriginAccessIdentity:
     Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: "anoop.kunjuraman.com website"
+        Comment: !Ref "AWS::StackName"
 
   CloudfrontDistribution:
     Type: "AWS::CloudFront::Distribution"
     Properties:
       DistributionConfig:
-        Comment: "anoop.kunjuraman.com website"
+        Comment: !Ref "AWS::StackName"
         DefaultRootObject: "index.html"
-        Aliases: ["anoop.kunjuraman.com"]
+        Aliases: [!Ref CustomDomainName]
         ViewerCertificate:
-          AcmCertificateArn: "arn:aws:acm:us-east-1:414954339574:certificate/355fc4e1-57ca-46d8-babc-86fe1d771b47"
+          AcmCertificateArn: !Ref AcmCertificateArn
           SslSupportMethod: sni-only
         Enabled: true
         HttpVersion: http2
         CustomErrorResponses:
           - ErrorCode: "404"
+            ResponsePagePath: "/404.html"
+            ResponseCode: "404"
+            ErrorCachingMinTTL: "30"
+          - ErrorCode: "403"
             ResponsePagePath: "/404.html"
             ResponseCode: "404"
             ErrorCachingMinTTL: "30"
