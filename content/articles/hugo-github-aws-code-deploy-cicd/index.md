@@ -1,5 +1,8 @@
 ---
-title: "Serverless Static Websites in AWS — a 2020 Guide"
+title: "Serverless Static Websites with Hugo and AWS SAM"
+slug: "serverless-static-hugo-aws-sam-cloudfront-s3-route53"
+description: "Building a serverless static website using Hugo and AWS SAM and creating an automated CICD pipeline using AWS CodeBuild"
+keywords: ["aws", "sam", "hugo", "cicd", "codebuild", "cloudfront"]
 date: 2020-05-22T22:14:27-05:00
 draft: false
 ---
@@ -290,6 +293,7 @@ Resources:
                   - s3:PutObject
                   - s3:GetObject
                   - s3:GetObjectVersion
+                  - s3:DeleteObject
                   - s3:ListBucket
                 Effect: Allow
                 Resource:
@@ -386,3 +390,9 @@ The `template.yaml` that you deployed earlier already contains code to create a 
 CodeDeploy comes with an option to move generated artifacts to a target S3 bucket. We can use this option to move the `public` directory contents to our target S3 bucket. But this approach will become problematic when we rename a file or delete files — CodeBuild will only copy new files over and the existing files will not be renamed or deleted. So we are using another approach here. We added a `post_build` command: `aws s3 sync public/ s3://${HTMLBucketName}/ --size-only --delete`. This will sync the `public` directory with the contents of the S3 bucket and will also delete and files that got renamed/deleted.
 
 You can trigger the CodeBuild project by making a code push to your GitHub repository. You can also go to [CodeBuild console](https://console.aws.amazon.com/codesuite/codebuild/projects) and trigger it manually.
+
+## Final note
+
+The SAM template that I used for this site can be found in my GitHub repo here: [https://github.com/anoopengineer/anoop-kunjuraman-site/tree/master/infra](https://github.com/anoopengineer/anoop-kunjuraman-site/tree/master/infra)
+
+If you wish to update this article, please send me a Pull Request here: [https://github.com/anoopengineer/anoop-kunjuraman-site](https://github.com/anoopengineer/anoop-kunjuraman-site)
