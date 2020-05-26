@@ -1,6 +1,5 @@
 ---
-title: "Serverless Static Websites in AWS — a 2020 Guide
-"
+title: "Serverless Static Websites in AWS — a 2020 Guide"
 date: 2020-05-22T22:14:27-05:00
 draft: false
 ---
