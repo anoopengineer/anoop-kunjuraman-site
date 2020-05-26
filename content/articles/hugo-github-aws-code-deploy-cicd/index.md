@@ -2,7 +2,7 @@
 title: "Serverless Static Websites in AWS — a 2020 Guide
 "
 date: 2020-05-22T22:14:27-05:00
-draft: true
+draft: false
 ---
 
 This is a writeup on how I build this site. I wanted a highly reliable, cost effective and low maintenance way of getting my content out. After checking out options like GitHub pages, Netlify etc, I decided to settle for AWS as my preferred way. Although GitHub pages initially seemed to be what I was looking for, they had a very opinionated branching strategy for personal sites (content source code cannot be in master branch) and the GitHub actions was buggy and not production worthy. After losing patience with GitHub pages, I settled down with AWS which I was familiar with and had past success on. The ability to have control over a customized disaster recovery, better performance via CloudFront CDN and complete serverless deployment also helped the case of AWS.
@@ -27,6 +27,363 @@ Let's get introduced to few technologies that we will use in this guide.
 
 [AWS CloudFront](https://aws.amazon.com/cloudfront/) is a Content Delivery Network (CDN) that delivers content to customers globally with low latency and high transfer speeds. In our case, CloudFront will act as the web server serving HTML pages, CSS, JS files, Images etc. CloudFront fetches data from S3 and caches at edge nodes that are closer to customers across the globe.
 
-### AWS CodeDeploy
+### AWS CodeBuild
 
-[AWS CodeDeploy](https://aws.amazon.com/codedeploy/) is part of AWS Developer tools. In function, it is equivalent to a Serverless Jenkins server. If listens to changes in your code repository (GitHub in our case) and builds the code and generates the HTML artifacts. It also pushes the HTML pages to our destination S3 buckets. This decouples the content writers from the whole AWS ecosystem. Content writes can push updated Markdown files to GitHub and CodeDeploy works behind the scene to automatically build the HTML pages using Hugo and publishing it to production.
+[AWS CodeBuild](https://aws.amazon.com/codebuild/) is part of AWS Developer tools. In function, it is equivalent to a Serverless Jenkins server. If listens to changes in your code repository (GitHub in our case) and builds the code and generates the HTML artifacts. It also pushes the HTML pages to our destination S3 buckets. This decouples the content writers from the whole AWS ecosystem. Content writes can push updated Markdown files to GitHub and CodeBuild works behind the scene to automatically build the HTML pages using Hugo and publishing it to production.
+
+### Route53 & ACM
+
+[Route53](https://aws.amazon.com/route53/) is a highly available and scalable DNS service from AWS. We will be using a custom domain for our static site and we will onboard that domain as a zone in Route53. We will not automate this step since this is a one time thing and also needs manual verification to prove that you own the domain. And the details of how to onboard your domain name to Route53 is outside the scope of this guide.
+
+[AWS Certificate Manager](https://aws.amazon.com/certificate-manager/) will help us create a free SSL certificate so that we can serve our site over HTTPS.
+
+## Design
+
+This is the overall architecture of our final design.
+
+![Architecture diagram](./images/static-website-aws-architecture.svg)
+
+### Content Generation
+
+Content authors generate content in Markdown format and commits this into Github. The GitHub hooks that we have setup as part of initial setup gets triggered with each code push and sets up a new build in motion in AWS CodeBuild. A build in CodeBuild has four main steps:
+
+1. Checkout the source code from Git
+1. Setup the build environment. In our case this will be a custom Docker container that has Hugo and AWS CLI binaries installed
+1. Execute the hugo build commands
+1. Push the generated artifacts to our target S3 directory
+1. Optional: invalidate CloudFront so that it refreshes its cache with fresh contents in S3
+
+### Content Consumption
+
+When customer visits the site, the browser first queries Route53 DNS service which will resole to a CloudFront edge node that is closer to their physical location. The CloudFront server uses S3 as the source.
+
+## Implementation
+
+Follow these steps to setup your static site.
+
+### Prerequisites
+
+1. You should have an AWS account. If not [create one](https://aws.amazon.com/account/)
+1. [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) and [configure it](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration)
+1. [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+
+### Create Hugo site
+
+Let's get started by creating a new hugo site. Follow steps in [this page](https://gohugo.io/getting-started/quick-start/) to create a basic Hugo static website.
+
+Create a new GitHub repository and push the new Hugo site to the GitHub repository. Keep your branching strategy simple — `master` branch is your main branch. All production deployments happen from here.
+
+### Setup Route53
+
+Follow the steps in [this page](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html) if you already have a domain and need to transfer it to AWS.
+
+Follow instructions in [this page](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html) if you need to register a domain from scratch.
+
+Either way by the end, you need to have a hosted zone setup for your domain.
+
+### Setup ACM
+
+Follow [steps here](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) to request a public certificate for your domain. You will need to validate that you own the domains by either DNS validation or email validation.
+
+### Setup SAM template
+
+Save the following content as `template.yaml`:
+
+```
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  MYSITE.com website
+
+Parameters:
+  HTMLBucketName:
+    Default: MYSITE.com
+    Description: Name of the S3 Bucket where your static site contents will be copied to.
+    Type: String
+
+  CustomDomainName:
+    Default: MYSITE.com
+    Description: The custom domain name you want for the static site
+    Type: String
+
+  AcmCertificateArn:
+    Description: ARN of the ACM certificate
+    Type: String
+
+  ComputeType:
+    AllowedValues:
+      - BUILD_GENERAL1_SMALL
+      - BUILD_GENERAL1_MEDIUM
+      - BUILD_GENERAL1_LARGE
+    Default: BUILD_GENERAL1_SMALL
+    Description: AWS CodeBuild project compute type.
+    Type: String
+
+  EnvironmentType:
+    AllowedValues:
+      - LINUX_CONTAINER
+      - WINDOWS_CONTAINER
+    Default: LINUX_CONTAINER
+    Description: Environment type used by AWS CodeBuild. See the documentation for details (https://docs.aws.amazon.com/codebuild/latest/userguide/create-project.html#create-project-cli).
+    Type: String
+
+  GitHubOAuthToken:
+    Description: OAuth token used by AWS CodeBuild to connect to GitHub
+    NoEcho: true
+    Type: String
+
+  GitHubOwner:
+    Description: GitHub username owning the repo
+    Type: String
+
+  GitHubRepo:
+    Description: GitHub repo name
+    Type: String
+
+Outputs:
+  HTMLBucketArn:
+    Value: !GetAtt S3Bucket.Arn
+  HTMLBucketName:
+    Value: !Ref S3Bucket
+  CodeBuildProjectArn:
+    Value: !GetAtt CodeBuildProject.Arn
+  CodeBuildProjectName:
+    Value: !Ref CodeBuildProject
+  CloudfrontDistribution:
+    Value: !Ref CloudfrontDistribution
+  CloudfrontDistributionDNSName:
+    Value: !GetAtt CloudfrontDistribution.DomainName
+
+Resources:
+  CloudFrontOriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref "AWS::StackName"
+
+  CloudfrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Comment: !Ref "AWS::StackName"
+        DefaultRootObject: "index.html"
+        Aliases: [!Ref CustomDomainName]
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertificateArn
+          SslSupportMethod: sni-only
+        Enabled: true
+        HttpVersion: http2
+        CustomErrorResponses:
+          - ErrorCode: "404"
+            ResponsePagePath: "/404.html"
+            ResponseCode: "404"
+            ErrorCachingMinTTL: "30"
+          - ErrorCode: "403"
+            ResponsePagePath: "/404.html"
+            ResponseCode: "404"
+            ErrorCachingMinTTL: "30"
+        Origins:
+          - Id: s3-website
+            DomainName: !GetAtt S3Bucket.DomainName
+            S3OriginConfig:
+              # Restricting Bucket access through an origin access identity
+              OriginAccessIdentity:
+                Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        DefaultCacheBehavior:
+          # Compress resources automatically ( gzip )
+          Compress: "true"
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: s3-website
+          ViewerProtocolPolicy: redirect-to-https
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref HTMLBucketName
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        # Restricting access to cloudfront.
+        Statement:
+          - Effect: Allow
+            Action: "s3:GetObject"
+            Resource:
+              - !Sub "arn:aws:s3:::${S3Bucket}/*"
+            Principal:
+              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+
+  CodeBuildProject:
+    Properties:
+      Name: !Ref "AWS::StackName"
+      Artifacts:
+        Type: NO_ARTIFACTS
+      BadgeEnabled: true
+      Environment:
+        ComputeType: !Ref ComputeType
+        EnvironmentVariables:
+          - Name: PACKAGE_BUCKET
+            Value: !Ref HTMLBucketName
+        Image: "aws/codebuild/standard:4.0"
+        Type: "LINUX_CONTAINER"
+      ServiceRole: !GetAtt CodeBuildProjectRole.Arn
+      Source:
+        Auth:
+          Resource: !Ref GitHubOAuthToken
+          Type: OAUTH
+        GitCloneDepth: 1
+        Location: !Sub https://github.com/${GitHubOwner}/${GitHubRepo}.git
+        ReportBuildStatus: true
+        Type: GITHUB
+        BuildSpec: !Sub |-
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - apt-get update
+                - curl -L -o hugo.deb https://github.com/gohugoio/hugo/releases/download/v0.71.1/hugo_extended_0.71.1_Linux-64bit.deb
+                - dpkg -i hugo.deb
+            build:
+              commands:
+                - hugo -v
+            post_build:
+              commands:
+                - ls -latrh public && aws --version
+                - aws s3 sync public/ s3://${HTMLBucketName}/ --size-only --delete
+          artifacts:
+            files:
+              - '**/*'
+            base-directory: public
+      Triggers:
+        Webhook: true
+    Type: AWS::CodeBuild::Project
+
+  CodeBuildProjectRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+        Version: "2012-10-17"
+      Path: /service-role/
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
+              - Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Effect: Allow
+                Resource:
+                  - !Sub arn:${AWS::Partition}:s3:::${HTMLBucketName}
+                  - !Sub arn:${AWS::Partition}:s3:::${HTMLBucketName}/*
+              - Action:
+                  - serverlessrepo:GetApplication
+                  - serverlessrepo:CreateCloudFormationTemplate
+                  - serverlessrepo:GetCloudFormationTemplate
+                Effect: Allow
+                Resource: "*"
+            Version: "2012-10-17"
+          PolicyName: CICodeBuildRolePolicy
+    Type: AWS::IAM::Role
+```
+
+Replace instances of `MYSITE.COM` with your site domain name.
+
+### Setup SAM config
+
+Save the following content as `samconfig.toml` in the same directory as `template.yaml`:
+
+```
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "MYSITE.com-site"
+s3_prefix = "MYSITE.com-site"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+```
+
+Replace `MYSITE.com-site` with your domain name.
+
+### Deploy the Infrastructure
+
+Launch a terminal, `cd` to the directory where you have `template.yaml` and run the following command:
+
+```
+sam validate && sam build && sam deploy -g
+```
+
+The `-g` flag for `sam deploy` denotes a guided deployment where the CLI will ask you to enter details of various configurable parameters. It will also give you an option to save your config file with the values you entered. Hence, you should use the guided mode only once and any subsequent invocation of `sam deploy` should be without the `-g` flag.
+
+In the guided mode SAM cli will ask you the following details:
+
+1. `Stack Name`: Enter a descriptive name that will become the Cloudformation stack name. E.g. `mysite.com-stack`
+1. `AWS Region`: Self explanatory. E.g: `us-east-1`
+1. `Parameter HTMLBucketName`: Enter name of the S3 bucket you wish to create to hold the hugo output. Typically use the domain name of the site you are building. E.g. `mysite.com`
+1. `Parameter CustomDomainName`: Domain name of the site that you want to use. E.g. `mysite.com`
+1. `Parameter AcmCertificateArn`: Go to [ACM Console](https://console.aws.amazon.com/acm/home) and copy the ARN of the cert that you created in Step 3. Paste it here.
+1. `ComputeType`: This is the ComputeType required to build your project in CodeBuild. For Hugo sites, the default value of `BUILD_GENERAL1_SMALL` should be sufficient.
+1. `GitHubOAuthToken`: Go to [GitHub Tokens page](https://github.com/settings/tokens) and generate a new Personal Access Token. Make sure that `repo` and `admin:repo_hook` permissions are enabled for this token. Paste the token here. This lets CodeBuild add a Git hook and trigger the CICD pipeline on code push to GitHub.
+1. `GitHubOwner`: This is your GitHub username. E.g. if your Hugo source is in a GitHub repository like https://github.com/myusername/my_hugo_repo, enter `myusername` here.
+1. `GitHubRepo`: This is your GitHub repository name. E.g. if your Hugo source is in a GitHub repository like https://github.com/myusername/my_hugo_repo, enter `my_hugo_repo`.
+1. `Confirm changes before deploy [y/N]`: Type N here.
+1. `Allow SAM CLI IAM role creation [Y/n]`: Type Y here.
+1. `Save arguments to samconfig.toml [Y/n]`: Type Y here.
+
+This will create the necessary IAM roles, the CloudFront distribution, CodeBuild build job and an S3 bucket. The CloudFront distribution will be configured to use the new S3 bucket as its origin.
+
+Remember that deploying in guided mode will remember all the entries you made earlier in the samconfig.toml and you can just run `sam build` after the first time without the `-g` flag.
+
+It can take up to 15 minutes for deployment to be done the first time. Once deployment is completed, it will output many details about the infrastructure that was just created — including the CloudFront distribution name to console in the format `xxxxxxxxxxxxxx.cloudfront.net`. Take a note of this as we will use this in the next step.
+
+### Create Route53 Record Sets
+
+In [Route53 console](https://console.aws.amazon.com/route53), select the hosted zone of your domain. Then create two Record Sets – one of type `A` and another of type `AAAA`.
+
+Name: `www`
+Alias: `Yes`
+Alias Target: `Select the cloudfront distribution name`
+Routing Policy: `Simple`
+
+### Validate
+
+Create an index.html file in your MYSITE.COM bucket with the following content:
+
+```
+<html>
+    <body>
+        <h1>Hello, World!</h1>
+    </body>
+</html>
+```
+
+If all goes right, you should see `Hello, World!` in your browser if you navigate to MYSITE.com.
+
+## CICD Pipeline
+
+The `template.yaml` that you deployed earlier already contains code to create a new AWS CodeDeploy build project. This project uses a base image (aws/codebuild/standard:4.0) and installs Hugo on top of it. It then runs `hugo -v` command to generate the `public` directory containing the static site.
+
+CodeDeploy comes with an option to move generated artifacts to a target S3 bucket. We can use this option to move the `public` directory contents to our target S3 bucket. But this approach will become problematic when we rename a file or delete files — CodeBuild will only copy new files over and the existing files will not be renamed or deleted. So we are using another approach here. We added a `post_build` command: `aws s3 sync public/ s3://${HTMLBucketName}/ --size-only --delete`. This will sync the `public` directory with the contents of the S3 bucket and will also delete and files that got renamed/deleted.
+
+You can trigger the CodeBuild project by making a code push to your GitHub repository. You can also go to [CodeBuild console](https://console.aws.amazon.com/codesuite/codebuild/projects) and trigger it manually.
