@@ -7,9 +7,20 @@ date: 2020-05-22T22:14:27-05:00
 draft: false
 ---
 
-This is a writeup on how I build this site. I wanted a highly reliable, cost effective and low maintenance way of getting my content out. After checking out options like GitHub pages, Netlify etc, I decided to settle for AWS as my preferred way. Although GitHub pages initially seemed to be what I was looking for, they had a very opinionated branching strategy for personal sites (content source code cannot be in master branch) and the GitHub actions was buggy and not production worthy. After losing patience with GitHub pages, I settled down with AWS which I was familiar with and had past success on. The ability to have control over a customized disaster recovery, better performance via CloudFront CDN and complete serverless deployment also helped the case of AWS.
+This is a writeup on how I build this site. I wanted a system that supported the following requirements:
 
-This guide shows how to do a serverless static website deployment in AWS using [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/) and how to create an automated continuos integration and continuos delivery pipeline. We will use Hugo to create a static site, but the same can be extended to Angular, React, GatsbyJS or any other static sites. We will be leveraging AWS SAM to deploy this static website in a serverless manner. Static assets will be stored in AWS S3 and content served by CloudFront's worldwide edge servers providing blazing fast content delivery to consumers. The source code for the site will be stored in GitHub and we will use AWS Code Builder to automatically build and deploy the site whenever a change is pushed to Github.
+1. Zero database. For any typical blogging system, database becomes the largest expense. Not just the cost of running it, but also the cost of operational maintenance and upkeep. It also complicates disaster recovery.
+1. Markdown support
+1. SCSS support
+1. GZIP for contents
+1. Custom domain with SSL certificate
+1. Automatic redirect from non-https url to https url
+1. Custom 404 and other error pages
+1. Reliable continuos deployment pipeline that feeds off GitHub
+
+After checking out options like GitHub pages, Netlify etc, I decided to settle for AWS as my preferred host. Although GitHub pages initially seemed to be what I was looking for, they had a very opinionated branching strategy for personal sites (content source code cannot be in master branch) and the GitHub actions was buggy and not production worthy. After losing patience with GitHub pages, I settled down with AWS which I was familiar with and had past success on. The ability to have control over a customized disaster recovery, better performance via CloudFront CDN and complete serverless deployment also helped the case of AWS.
+
+This guide shows how to do a serverless static website deployment in AWS using [AWS Serverless Application Model (SAM)](https://aws.amazon.com/serverless/sam/) and how to create an automated continuos integration and continuos delivery pipeline. We will use Hugo to create a static site, but the same can be extended to Angular, React, GatsbyJS or any other static sites. We will be leveraging AWS SAM to deploy this static website in a serverless manner. Static assets will be stored in AWS S3 and content served by CloudFront's worldwide edge servers providing blazing fast content delivery to consumers. The source code for the site will be stored in GitHub and we will use AWS Code Builder to automatically build and deploy the site whenever a change is pushed to Github.
 
 Let's get introduced to few technologies that we will use in this guide.
 
@@ -40,6 +51,24 @@ Let's get introduced to few technologies that we will use in this guide.
 [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/) will help us create a free SSL certificate so that we can serve our site over HTTPS.
 
 ## Design
+
+There are typically three approaches that we can take to deploy a static site using an S3 bucket:
+
+1. Upload your website content to S3 bucket and then enable website hosting, set permissions and configure an index document. More details [here](https://docs.aws.amazon.com/AmazonS3/latest/dev/HowDoIWebsiteConfiguration.html). You can then add a Route53 alias to point to S3 domain to make your custom domain URL work.
+1. Same as #1, but we also bring in CloudFront as the CDN. CloudFront will be configured to use the S3-Website as the backend and Route53 will point to CloudFront rather than S3-Website directly.
+1. #1 and #2 suffer a drawback that we need to make the S3 bucket and its contents public. There is another way where we create an `Origin Access Identity (OAI)` and attach it to our CloudFront distribution. We will then give read access to our S3 bucket to just this OAI and make the bucket private by default.
+
+We will be using option #3 in this guide since this is better from a security view point. However, there is a pitfall in this approach. When using OAI with S3 rest endpoint, automatic resolution of index documents in subdirectories doesn't work. It means:
+
+- www.mysite.com → resolves correctly to www.mysite.com/index.html
+- www.mysite.com/subdir/ → doesn't automatically resolves to www.mysite.com/subdir/index.html and results in 403 Access Denied error
+- www.mysite.com/subdir/index.html → resolves correctly
+
+The official recommendation from AWS is to use lambda@edge to have a redirect as described [here](https://aws.amazon.com/blogs/compute/implementing-default-directory-indexes-in-amazon-s3-backed-amazon-cloudfront-origins-using-lambdaedge/). Instead of this, we will go with a simpler approach of enabling `dirty urls` in Hugo by adding the following in hugo config toml file. This make sure that absolute urls always ends in `.html` and can always be resolved correctly by CloudFront.
+
+```toml
+uglyurls = true
+```
 
 This is the overall architecture of our final design.
 
@@ -91,7 +120,7 @@ Follow [steps here](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-requ
 
 Save the following content as `template.yaml`:
 
-```
+```yaml {linenos=table}
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
@@ -119,14 +148,6 @@ Parameters:
       - BUILD_GENERAL1_LARGE
     Default: BUILD_GENERAL1_SMALL
     Description: AWS CodeBuild project compute type.
-    Type: String
-
-  EnvironmentType:
-    AllowedValues:
-      - LINUX_CONTAINER
-      - WINDOWS_CONTAINER
-    Default: LINUX_CONTAINER
-    Description: Environment type used by AWS CodeBuild. See the documentation for details (https://docs.aws.amazon.com/codebuild/latest/userguide/create-project.html#create-project-cli).
     Type: String
 
   GitHubOAuthToken:
@@ -173,6 +194,7 @@ Resources:
         ViewerCertificate:
           AcmCertificateArn: !Ref AcmCertificateArn
           SslSupportMethod: sni-only
+          MinimumProtocolVersion: "TLSv1.2_2018"
         Enabled: true
         HttpVersion: http2
         CustomErrorResponses:
@@ -316,7 +338,7 @@ Replace instances of `MYSITE.COM` with your site domain name.
 
 Save the following content as `samconfig.toml` in the same directory as `template.yaml`:
 
-```
+```toml {linenos=table}
 version = 0.1
 [default]
 [default.deploy]
@@ -333,7 +355,7 @@ Replace `MYSITE.com-site` with your domain name.
 
 Launch a terminal, `cd` to the directory where you have `template.yaml` and run the following command:
 
-```
+```bash
 sam validate && sam build && sam deploy -g
 ```
 
@@ -373,11 +395,11 @@ Routing Policy: `Simple`
 
 Create an index.html file in your MYSITE.COM bucket with the following content:
 
-```
+```html
 <html>
-    <body>
-        <h1>Hello, World!</h1>
-    </body>
+  <body>
+    <h1>Hello, World!</h1>
+  </body>
 </html>
 ```
 
