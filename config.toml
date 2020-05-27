@@ -4,6 +4,8 @@ theme = "anoop-simple"
 languagecode = "en-us"
 defaultcontentlanguage = "en"
 
+uglyurls = true
+
 paginate = 20
 canonifyurls = true
 
