@@ -71,7 +71,7 @@ googleAnalytics = "UA-149662048-1"
 [[menu.main]]
     name = "Articles"
     weight = 1
-    url  = "/articles/"
+    url  = "/articles.html"
 [[menu.main]]
     name = "Github"
     weight = 2
