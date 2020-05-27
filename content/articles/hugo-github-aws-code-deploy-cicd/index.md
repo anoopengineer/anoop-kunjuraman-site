@@ -43,7 +43,7 @@ Let's get introduced to few technologies that we will use in this guide.
 
 This is the overall architecture of our final design.
 
-![Architecture diagram](./images/static-website-aws-architecture.svg)
+{{<img "images/static-website-aws-architecture.svg" "Architecture">}}
 
 ### Content Generation
 

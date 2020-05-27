@@ -82,6 +82,7 @@ Resources:
         ViewerCertificate:
           AcmCertificateArn: !Ref AcmCertificateArn
           SslSupportMethod: sni-only
+          MinimumProtocolVersion: "TLSv1.2_2018"
         Enabled: true
         HttpVersion: http2
         CustomErrorResponses:
