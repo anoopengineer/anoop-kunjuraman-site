@@ -104,6 +104,9 @@ Resources:
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
           Compress: "true"
+          DefaultTTL: 172800
+          MaxTTL: 31536000
+          MinTTL: 172800
           AllowedMethods:
             - GET
             - HEAD
