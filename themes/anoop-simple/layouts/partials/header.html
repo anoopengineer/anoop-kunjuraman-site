@@ -9,7 +9,10 @@
       {{ with .Site.Menus.main}}
       {{ range sort . }}
       <li class="navigation-item">
-        <a class="navigation-link" href="{{ .URL | absLangURL }}">{{ .Name }}</a>
+        <a class="navigation-link" {{ if strings.HasPrefix .URL "/" }} {{ else }} target="_blank" rel="noreferrer"
+          {{ end }} href="{{ .URL | absLangURL }}">
+          {{ .Name }}
+        </a>
       </li>
       {{ end }}
       {{ end }}
