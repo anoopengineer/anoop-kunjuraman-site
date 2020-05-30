@@ -197,6 +197,7 @@ Resources:
           MinimumProtocolVersion: "TLSv1.2_2018"
         Enabled: true
         HttpVersion: http2
+        PriceClass: "PriceClass_100"
         CustomErrorResponses:
           - ErrorCode: "404"
             ResponsePagePath: "/404.html"
@@ -216,9 +217,6 @@ Resources:
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
           Compress: "true"
-          DefaultTTL: 172800
-          MaxTTL: 31536000
-          MinTTL: 172800
           AllowedMethods:
             - GET
             - HEAD
@@ -283,7 +281,7 @@ Resources:
             post_build:
               commands:
                 - ls -latrh public && aws --version
-                - aws s3 sync public/ s3://${HTMLBucketName}/ --size-only --delete
+                - aws s3 sync public/ s3://${HTMLBucketName}/ --size-only --delete --cache-control max-age=31536000
           artifacts:
             files:
               - '**/*'
