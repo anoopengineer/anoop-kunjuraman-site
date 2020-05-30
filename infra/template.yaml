@@ -85,6 +85,7 @@ Resources:
           MinimumProtocolVersion: "TLSv1.2_2018"
         Enabled: true
         HttpVersion: http2
+        PriceClass: "PriceClass_100"
         CustomErrorResponses:
           - ErrorCode: "404"
             ResponsePagePath: "/404.html"
