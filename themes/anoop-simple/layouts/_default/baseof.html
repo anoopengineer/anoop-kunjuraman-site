@@ -66,8 +66,13 @@
   {{ end }}
   {{ end }}
 
-  {{ range .Site.Params.custom_css }}
-  <link rel="stylesheet" href="{{ . | relURL }}" />
+  {{ if .Site.IsServer }}
+  {{ $style := resources.Get "css/custom.css"}}
+  <link rel="stylesheet" href="{{ $style.Permalink }}" crossorigin="anonymous" media="screen" />
+  {{ else }}
+  {{ $style := resources.Get "css/custom.css" | minify | fingerprint}}
+  <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}" crossorigin="anonymous"
+    media="screen" />
   {{ end }}
 
   {{ range .Site.Params.custom_js }}
