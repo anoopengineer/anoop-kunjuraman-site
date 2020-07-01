@@ -16,8 +16,8 @@ Do you have all the info needed to get started with coding? The following are so
 1. Will the numbers repeat? Interviewer says no. All numbers are unique.
 1. Will there be more than one answer set possible? In the real world, yes. But for the sake for this interview you can consider there will only be one possible answer set.
 
-#### Approach 1: Brute Force
-We take each element compare against the rest of the array and see if it adds up to target. If it does, break out of the loop and return the indices.
+#### Approach 1: Brute force
+We take each element, compare it against the rest of the array and see if it adds up to target. If it does, break out of the loop and return the indices.
 
 ```python
 def two_sum(arr, target):
@@ -27,7 +27,7 @@ def two_sum(arr, target):
                 return [i,j] 
 ```
 
-Now this works, but the time complexity is O(n<sup>2</sup>) as we have to loop through the array once for each element in the array. The space complexity is O(1).
+Now this works, but the time complexity is O(n<sup>2</sup>) as we have to loop through the array for each element in the array. The space complexity is O(1).
 
 #### Approach 2: Introduce a dictionary
 What's killing us wrt time complexity in Approach 1 is that our method to check whether a complement number exist in the array involves going over the entire array again. What if we can store the entire array in a dictionary which will enable a lookup in O(1) time instead of O(n) time?
@@ -45,11 +45,11 @@ def two_sum(arr, target):
     return []
 ```
 
-In the first pass we populate a dictionary and in the second pass we check whether a complement for the number exists in the dictionary or not. We have gained a better run time complexity of O(n) but at the cost of space time complexity which is also now O(n) as we are now storing the copy of the entire array in a dictionary
+In the first pass, we populate a dictionary and in the second pass we check whether a complement for the number exists in the dictionary or not. We have gained a better run time complexity of O(n) but at the cost of space time complexity which is now O(n) as we are now storing the copy of the entire array in a dictionary
 
 
-#### Approach 3: One pass dictionary
-If you carefully analyze Approach 2, you will see that we can get this done in one pass. As we insert elements into the dictionary, we check the dictionary to see if the complement is present:
+#### Approach 3: Single pass dictionary lookup
+If you carefully analyze Approach 2, you will see that we can get this done in one pass. As we insert elements into the dictionary, we check the dictionary to see if the complement is already present:
 
 ```python
 def two_sum(arr, target):
