@@ -3,7 +3,9 @@ title: "Serverless Static Websites with Hugo and AWS SAM"
 slug: "serverless-static-hugo-aws-sam-cloudfront-s3-route53"
 description: "Building a serverless static website using Hugo and AWS SAM and creating an automated CICD pipeline using AWS CodeBuild"
 keywords: ["aws", "sam", "hugo", "cicd", "codebuild", "cloudfront"]
-date: 2020-05-22T22:14:27-05:00
+categories: ['Technical Writeup']
+tags: ["aws", "sam", "hugo", "cicd", "codebuild", "cloudfront"]
+date: 2020-05-23T22:14:27-05:00
 draft: false
 ---
 

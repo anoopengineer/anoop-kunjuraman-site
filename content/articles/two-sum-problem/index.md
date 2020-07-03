@@ -1,7 +1,11 @@
 ---
 title: "Two Sum Problem"
-date: 2020-06-30T16:55:26-05:00
+date: 2020-06-30T17:55:26-05:00
 draft: false
+categories: ['Interview Questions']
+tags: ['interview', 'python', '2-sum']
+keywords: ['interview', 'python', '2-sum']
+
 ---
 
 Two sum problem is a common tech interview question that goes like this:
