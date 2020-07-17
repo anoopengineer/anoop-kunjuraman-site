@@ -69,16 +69,12 @@ googleAnalytics = "UA-149662048-1"
 
 # Menu links
 [[menu.main]]
-    name = "Articles"
-    weight = 1
-    url  = "/articles.html"
-[[menu.main]]
     name = "Github"
-    weight = 2
+    weight = 1
     url = "https://github.com/anoopengineer/"
 [[menu.main]]
     name = "About Me"
-    weight = 3
+    weight = 2
     url = "/about.html"
 
 [markup.goldmark.renderer]
